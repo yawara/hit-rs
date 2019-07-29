@@ -74,6 +74,14 @@ impl IndexHeader {
             num_entries,
         }
     }
+
+    pub fn bytes(&self) -> Vec<u8> {
+        let mut bytes = Vec::new();
+        bytes.extend_from_slice(&self.magic);
+        bytes.extend_from_slice(&self.version.to_be_bytes());
+        bytes.extend_from_slice(&self.num_entries.to_be_bytes());
+        bytes
+    }
 }
 
 impl IndexTime {
@@ -92,6 +100,13 @@ impl IndexTime {
             nanoseconds,
         }
     }
+
+    pub fn bytes(&self) -> Vec<u8> {
+        let mut bytes = Vec::new();
+        bytes.extend_from_slice(&self.seconds.to_be_bytes());
+        bytes.extend_from_slice(&self.nanoseconds.to_be_bytes());
+        bytes
+    }
 }
 
 impl IndexEntry {
@@ -101,6 +116,8 @@ impl IndexEntry {
         let ctime = IndexTime::new(metadata.ctime() as i32, metadata.ctime_nsec() as u32);
         let mtime = IndexTime::new(metadata.mtime() as i32, metadata.mtime_nsec() as u32);
         let blob = Blob::from_path(&path);
+        let path: Vec<u8> = path.as_ref().to_str().unwrap().bytes().collect();
+        let flags = path.len() as u16 & 0x0fff;
         Self {
             ctime: ctime,
             mtime: mtime,
@@ -111,9 +128,9 @@ impl IndexEntry {
             gid: metadata.gid(),
             size: metadata.size() as u32,
             id: blob.id,
-            flags: 0,
+            flags: flags,
             flags_extended: 0,
-            path: path.as_ref().to_str().unwrap().bytes().collect(),
+            path: path,
         }
     }
 
@@ -151,6 +168,26 @@ impl IndexEntry {
             flags_extended: flags_extended,
             path: path,
         }
+    }
+
+    pub fn bytes(&self) -> Vec<u8> {
+        let mut bytes = Vec::new();
+        bytes.append(&mut self.ctime.bytes());
+        bytes.append(&mut self.mtime.bytes());
+        bytes.extend_from_slice(&self.dev.to_be_bytes());
+        bytes.extend_from_slice(&self.ino.to_be_bytes());
+        bytes.extend_from_slice(&self.mode.to_be_bytes());
+        bytes.extend_from_slice(&self.uid.to_be_bytes());
+        bytes.extend_from_slice(&self.gid.to_be_bytes());
+        bytes.extend_from_slice(&self.size.to_be_bytes());
+        bytes.extend_from_slice(self.id.as_bytes());
+        bytes.extend_from_slice(&self.flags.to_be_bytes());
+        bytes.extend_from_slice(&self.path);
+        let name_len = self.path.len();
+        let r = (name_len + 20 + 2) % 8;
+        let padding = if r == 0 { 8 } else { 8 - r };
+        bytes.append(&mut vec![0u8; padding]);
+        bytes
     }
 }
 
@@ -192,6 +229,15 @@ impl Index {
             entries.push(IndexEntry::from_reader(&mut reader));
         }
         Self { header, entries }
+    }
+
+    pub fn bytes(&self) -> Vec<u8> {
+        let mut bytes = Vec::new();
+        bytes.append(&mut self.header.bytes());
+        for entry in &self.entries {
+            bytes.append(&mut entry.bytes());
+        }
+        bytes
     }
 }
 

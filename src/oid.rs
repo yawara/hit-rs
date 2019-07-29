@@ -28,6 +28,10 @@ impl Oid {
         reader.read_exact(&mut id);
         Self { id }
     }
+
+    pub fn as_bytes(&self) -> &[u8] {
+        &self.id
+    }
 }
 
 impl fmt::Debug for Oid {
