@@ -34,16 +34,6 @@ pub struct IndexEntry {
     pub path: Vec<u8>,
 }
 
-impl fmt::Debug for IndexEntry {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "IndexEntry {{ ctime: {:?}, mtime: {:?}, dev: {}, ino: {}, mode: {}, uid: {}, gid: {}, size: {}, id: {:?}, flags: {}, flags_extended: {}, path: {} }}",
-            self.ctime, self.mtime, self.dev, self.ino, self.mode, self.uid, self.gid, self.size, self.id, self.flags, self.flags_extended, std::str::from_utf8(&self.path).unwrap()
-        )
-    }
-}
-
 #[derive(Debug)]
 pub struct Index {
     header: IndexHeader,
@@ -249,6 +239,16 @@ impl fmt::Debug for IndexHeader {
             std::str::from_utf8(&self.magic).unwrap(),
             self.version,
             self.num_entries
+        )
+    }
+}
+
+impl fmt::Debug for IndexEntry {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "IndexEntry {{ ctime: {:?}, mtime: {:?}, dev: {}, ino: {}, mode: {}, uid: {}, gid: {}, size: {}, id: {:?}, flags: {}, flags_extended: {}, path: {} }}",
+            self.ctime, self.mtime, self.dev, self.ino, self.mode, self.uid, self.gid, self.size, self.id, self.flags, self.flags_extended, std::str::from_utf8(&self.path).unwrap()
         )
     }
 }
