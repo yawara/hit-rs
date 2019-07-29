@@ -1,4 +1,4 @@
-use crate::object::Oid;
+use crate::oid::Oid;
 use crate::tree::Tree;
 
 pub struct Commit {
