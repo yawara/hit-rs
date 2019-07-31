@@ -1,10 +1,13 @@
 use std::fmt;
 use std::io::BufRead;
-use std::io::Read;
+use std::io::{Read, Write};
 use std::os::unix::fs::MetadataExt;
 use std::path::Path;
 
+use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
+
 use crate::blob::Blob;
+use crate::error::Result;
 use crate::oid::Oid;
 
 pub struct IndexHeader {
@@ -53,24 +56,23 @@ impl IndexHeader {
         self.num_entries += 1
     }
 
-    pub fn from_reader<B: BufRead>(mut reader: B) -> Self {
+    pub fn from_reader<B: BufRead>(mut reader: B) -> Result<Self> {
         let mut magic = [0u8; 4];
         reader.read_exact(&mut magic).unwrap();
-        let version = read_u32(&mut reader);
-        let num_entries = read_u32(&mut reader);
-        Self {
+        let version = reader.read_u32::<BigEndian>()?;
+        let num_entries = reader.read_u32::<BigEndian>()?;
+        Ok(Self {
             magic,
             version,
             num_entries,
-        }
+        })
     }
 
-    pub fn bytes(&self) -> Vec<u8> {
-        let mut bytes = Vec::new();
-        bytes.extend_from_slice(&self.magic);
-        bytes.extend_from_slice(&self.version.to_be_bytes());
-        bytes.extend_from_slice(&self.num_entries.to_be_bytes());
-        bytes
+    pub fn write<W: Write>(&self, mut writer: W) -> Result<()> {
+        writer.write(&self.magic)?;
+        writer.write_u32::<BigEndian>(self.version)?;
+        writer.write_u32::<BigEndian>(self.num_entries)?;
+        Ok(())
     }
 }
 
@@ -82,20 +84,19 @@ impl IndexTime {
         }
     }
 
-    pub fn from_reader<B: BufRead>(mut reader: B) -> Self {
-        let seconds = read_i32(&mut reader);
-        let nanoseconds = read_u32(&mut reader);
-        Self {
+    pub fn from_reader<B: BufRead>(mut reader: B) -> Result<Self> {
+        let seconds = reader.read_i32::<BigEndian>()?;
+        let nanoseconds = reader.read_u32::<BigEndian>()?;
+        Ok(Self {
             seconds,
             nanoseconds,
-        }
+        })
     }
 
-    pub fn bytes(&self) -> Vec<u8> {
-        let mut bytes = Vec::new();
-        bytes.extend_from_slice(&self.seconds.to_be_bytes());
-        bytes.extend_from_slice(&self.nanoseconds.to_be_bytes());
-        bytes
+    pub fn write<W: Write>(&self, mut writer: W) -> Result<()> {
+        writer.write_i32::<BigEndian>(self.seconds)?;
+        writer.write_u32::<BigEndian>(self.nanoseconds)?;
+        Ok(())
     }
 }
 
@@ -124,27 +125,27 @@ impl IndexEntry {
         }
     }
 
-    pub fn from_reader<B: BufRead>(mut reader: B) -> Self {
-        let ctime = IndexTime::from_reader(&mut reader);
-        let mtime = IndexTime::from_reader(&mut reader);
-        let dev = read_u32(&mut reader);
-        let ino = read_u32(&mut reader);
-        let mode = read_u32(&mut reader);
-        let uid = read_u32(&mut reader);
-        let gid = read_u32(&mut reader);
-        let size = read_u32(&mut reader);
-        let id = Oid::from_reader(&mut reader);
-        let flags = read_u16(&mut reader);
+    pub fn from_reader<B: BufRead>(mut reader: B) -> Result<Self> {
+        let ctime = IndexTime::from_reader(&mut reader)?;
+        let mtime = IndexTime::from_reader(&mut reader)?;
+        let dev = reader.read_u32::<BigEndian>()?;
+        let ino = reader.read_u32::<BigEndian>()?;
+        let mode = reader.read_u32::<BigEndian>()?;
+        let uid = reader.read_u32::<BigEndian>()?;
+        let gid = reader.read_u32::<BigEndian>()?;
+        let size = reader.read_u32::<BigEndian>()?;
+        let id = Oid::from_reader(&mut reader)?;
+        let flags = reader.read_u16::<BigEndian>()?;
         // let flags_extended = read_u16(&mut reader);
         let flags_extended = 0u16;
         let name_len = flags & 0x0fff;
         let mut path = vec![0; name_len as usize];
-        reader.read_exact(&mut path);
+        reader.read_exact(&mut path)?;
         let r = (name_len + 20 + 2) % 8;
         let remain = if r == 0 { 8 } else { 8 - r };
         let mut remain = reader.take(remain as u64);
-        remain.read_to_end(&mut Vec::new());
-        Self {
+        remain.read_to_end(&mut Vec::new())?;
+        Ok(Self {
             ctime: ctime,
             mtime: mtime,
             dev: dev,
@@ -157,46 +158,27 @@ impl IndexEntry {
             flags: flags,
             flags_extended: flags_extended,
             path: path,
-        }
+        })
     }
 
-    pub fn bytes(&self) -> Vec<u8> {
-        let mut bytes = Vec::new();
-        bytes.append(&mut self.ctime.bytes());
-        bytes.append(&mut self.mtime.bytes());
-        bytes.extend_from_slice(&self.dev.to_be_bytes());
-        bytes.extend_from_slice(&self.ino.to_be_bytes());
-        bytes.extend_from_slice(&self.mode.to_be_bytes());
-        bytes.extend_from_slice(&self.uid.to_be_bytes());
-        bytes.extend_from_slice(&self.gid.to_be_bytes());
-        bytes.extend_from_slice(&self.size.to_be_bytes());
-        bytes.extend_from_slice(self.id.as_bytes());
-        bytes.extend_from_slice(&self.flags.to_be_bytes());
-        bytes.extend_from_slice(&self.path);
+    pub fn write<W: Write>(&self, mut writer: W) -> Result<()> {
+        self.ctime.write(&mut writer)?;
+        self.mtime.write(&mut writer)?;
+        writer.write_u32::<BigEndian>(self.dev)?;
+        writer.write_u32::<BigEndian>(self.ino)?;
+        writer.write_u32::<BigEndian>(self.mode)?;
+        writer.write_u32::<BigEndian>(self.uid)?;
+        writer.write_u32::<BigEndian>(self.gid)?;
+        writer.write_u32::<BigEndian>(self.size)?;
+        writer.write(self.id.as_bytes())?;
+        writer.write_u16::<BigEndian>(self.flags)?;
+        writer.write(&self.path)?;
         let name_len = self.path.len();
         let r = (name_len + 20 + 2) % 8;
         let padding = if r == 0 { 8 } else { 8 - r };
-        bytes.append(&mut vec![0u8; padding]);
-        bytes
+        writer.write(&vec![0u8; padding])?;
+        Ok(())
     }
-}
-
-fn read_i32<B: BufRead>(mut reader: B) -> i32 {
-    let mut tmp = [0u8; 4];
-    reader.read_exact(&mut tmp);
-    i32::from_be_bytes(tmp)
-}
-
-fn read_u32<B: BufRead>(mut reader: B) -> u32 {
-    let mut tmp = [0u8; 4];
-    reader.read_exact(&mut tmp);
-    u32::from_be_bytes(tmp)
-}
-
-fn read_u16<B: BufRead>(mut reader: B) -> u16 {
-    let mut tmp = [0u8; 2];
-    reader.read_exact(&mut tmp);
-    u16::from_be_bytes(tmp)
 }
 
 impl Index {
@@ -212,22 +194,21 @@ impl Index {
         self.entries.push(index_entry);
     }
 
-    pub fn from_reader<B: BufRead>(mut reader: B) -> Self {
-        let header = IndexHeader::from_reader(&mut reader);
+    pub fn from_reader<B: BufRead>(mut reader: B) -> Result<Self> {
+        let header = IndexHeader::from_reader(&mut reader)?;
         let mut entries = Vec::new();
         for _ in 0..(header.num_entries) {
-            entries.push(IndexEntry::from_reader(&mut reader));
+            entries.push(IndexEntry::from_reader(&mut reader)?);
         }
-        Self { header, entries }
+        Ok(Self { header, entries })
     }
 
-    pub fn bytes(&self) -> Vec<u8> {
-        let mut bytes = Vec::new();
-        bytes.append(&mut self.header.bytes());
+    pub fn write<W: Write>(&self, mut writer: W) -> Result<()> {
+        self.header.write(&mut writer)?;
         for entry in &self.entries {
-            bytes.append(&mut entry.bytes());
+            entry.write(&mut writer)?;
         }
-        bytes
+        Ok(())
     }
 }
 

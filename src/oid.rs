@@ -4,6 +4,8 @@ use sha1::Sha1;
 use std::fmt;
 use std::io::BufRead;
 
+use crate::error::Result;
+
 #[derive(Clone, Copy)]
 pub struct Oid {
     id: [u8; GIT_OID_RAWSZ],
@@ -23,10 +25,10 @@ impl Oid {
         Self::from_digest(sha1.digest())
     }
 
-    pub fn from_reader<B: BufRead>(mut reader: B) -> Self {
+    pub fn from_reader<B: BufRead>(mut reader: B) -> Result<Self> {
         let mut id = [0u8; GIT_OID_RAWSZ];
-        reader.read_exact(&mut id);
-        Self { id }
+        reader.read_exact(&mut id)?;
+        Ok(Self { id })
     }
 
     pub fn as_bytes(&self) -> &[u8] {

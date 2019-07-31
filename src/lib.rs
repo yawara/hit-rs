@@ -1,6 +1,7 @@
 extern crate hex;
 extern crate serde;
 extern crate sha1;
+extern crate byteorder;
 
 pub mod blob;
 pub mod commit;
