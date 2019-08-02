@@ -103,26 +103,27 @@ impl IndexTime {
 impl IndexEntry {
     pub fn new<P: AsRef<Path>>(path: P) -> Self {
         // TODO: flags and flags_extended
-        let metadata = std::fs::metadata(&path).unwrap();
-        let ctime = IndexTime::new(metadata.ctime() as i32, metadata.ctime_nsec() as u32);
-        let mtime = IndexTime::new(metadata.mtime() as i32, metadata.mtime_nsec() as u32);
-        let blob = Blob::from_path(&path);
-        let path: Vec<u8> = path.as_ref().to_str().unwrap().bytes().collect();
-        let flags = path.len() as u16 & 0x0fff;
-        Self {
-            ctime: ctime,
-            mtime: mtime,
-            dev: metadata.dev() as u32,
-            ino: metadata.ino() as u32,
-            mode: metadata.mode(),
-            uid: metadata.uid(),
-            gid: metadata.gid(),
-            size: metadata.size() as u32,
-            id: blob.id,
-            flags: flags,
-            flags_extended: 0,
-            path: path,
-        }
+        // let metadata = std::fs::metadata(&path).unwrap();
+        // let ctime = IndexTime::new(metadata.ctime() as i32, metadata.ctime_nsec() as u32);
+        // let mtime = IndexTime::new(metadata.mtime() as i32, metadata.mtime_nsec() as u32);
+        // let blob = Blob::from_path(&path);
+        // let path: Vec<u8> = path.as_ref().to_str().unwrap().bytes().collect();
+        // let flags = path.len() as u16 & 0x0fff;
+        // Self {
+        //     ctime: ctime,
+        //     mtime: mtime,
+        //     dev: metadata.dev() as u32,
+        //     ino: metadata.ino() as u32,
+        //     mode: metadata.mode(),
+        //     uid: metadata.uid(),
+        //     gid: metadata.gid(),
+        //     size: metadata.size() as u32,
+        //     id: blob.id,
+        //     flags: flags,
+        //     flags_extended: 0,
+        //     path: path,
+        // }
+        unimplemented!()
     }
 
     pub fn from_reader<B: BufRead>(mut reader: B) -> Result<Self> {

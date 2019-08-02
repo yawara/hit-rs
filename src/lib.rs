@@ -11,3 +11,4 @@ pub mod oid;
 //pub mod repo;
 pub mod tree;
 pub mod error;
+pub mod object;

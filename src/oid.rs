@@ -3,6 +3,7 @@ pub const GIT_OID_RAWSZ: usize = 20;
 use sha1::Sha1;
 use std::fmt;
 use std::io::BufRead;
+use std::ops::Deref;
 
 use crate::error::Result;
 
@@ -39,5 +40,13 @@ impl Oid {
 impl fmt::Debug for Oid {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", hex::encode(self.id))
+    }
+}
+
+impl Deref for Oid {
+    type Target = [u8];
+
+    fn deref(&self) -> &Self::Target {
+        self.as_bytes()
     }
 }

@@ -16,7 +16,7 @@ impl Repository {
         // ".git/refs"
         // ".git/refs/heads/"
         // ".git/refs/tags"
-        
+        unimplemented!()
     }
 
     pub fn open<P: AsRef<Path>>(path: P) -> Result<Self> {
