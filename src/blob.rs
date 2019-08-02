@@ -3,8 +3,7 @@ use std::io::prelude::*;
 use std::path::Path;
 
 pub struct Blob {
-    pub id: Oid,
-    data: Vec<u8>,
+    content: Vec<u8>,
 }
 
 impl Blob {
