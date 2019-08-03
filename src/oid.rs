@@ -16,14 +16,11 @@ impl Oid {
     pub fn new(id: [u8; GIT_OID_RAWSZ]) -> Self {
         Self { id }
     }
-    pub fn from_digest(digest: sha1::Digest) -> Self {
-        Self { id: digest.bytes() }
-    }
 
-    pub fn from_data(data: &[u8]) -> Self {
-        let mut sha1 = Sha1::new();
-        sha1.update(data);
-        Self::from_digest(sha1.digest())
+    pub fn from_hex<T: AsRef<[u8]>>(data: T) -> Self {
+        let mut id = [0u8; GIT_OID_RAWSZ];
+        id.copy_from_slice(&hex::decode(data).unwrap());
+        Oid::new(id)
     }
 
     pub fn from_reader<B: BufRead>(mut reader: B) -> Result<Self> {
@@ -35,11 +32,15 @@ impl Oid {
     pub fn as_bytes(&self) -> &[u8] {
         &self.id
     }
+
+    pub fn hex(&self) -> String {
+        hex::encode(self.id)
+    }
 }
 
 impl fmt::Debug for Oid {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", hex::encode(self.id))
+        write!(f, "{}", self.hex())
     }
 }
 
