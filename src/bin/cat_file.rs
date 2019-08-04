@@ -10,8 +10,25 @@ fn main() {
     let odb = StandardOdb::from_path(".git/objects");
     let oid = Oid::from_hex(&args[1]);
     let object = odb.get(&oid).unwrap();
-    let tree = object.into_tree().unwrap();
-    println!("{:?}", tree);
-    // let blob = object.into_blob().unwrap();
-    // print!("{}", blob.as_str());
+    match object.as_blob() {
+        Some(blob) => {
+            println!("{}", blob.as_str());
+            return;
+        }
+        None => (),
+    }
+    match object.as_tree() {
+        Some(tree) => {
+            println!("{:?}", tree);
+            return;
+        }
+        None => (),
+    }
+    match object.as_commit() {
+        Some(commit) => {
+            println!("{:?}", commit);
+            return;
+        }
+        None => (),
+    }
 }

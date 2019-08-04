@@ -95,10 +95,8 @@ impl StandardOdb {
     }
 
     fn read_blob<R: Read>(mut reader: R, object_size: usize) -> Blob {
-        println!("object_size from header: {}", object_size);
         let mut buf = Vec::new();
         let object_size = reader.read_to_end(&mut buf).unwrap();
-        println!("real object_size: {}", object_size);
         Blob::new(&buf)
     }
 
