@@ -1,10 +1,12 @@
 use crate::blob::Blob;
-use crate::commit::Commit;
+use crate::commit::{Commit, Identity};
 use crate::error::Result;
 use crate::object::Object;
 use crate::oid::Oid;
 use crate::tree::{Mode, Name, Tree, TreeEntry};
 
+use chrono::offset::FixedOffset;
+use chrono::TimeZone;
 use flate2::bufread::ZlibDecoder;
 use std::io::BufRead;
 use std::io::BufReader;
@@ -119,8 +121,68 @@ impl StandardOdb {
         tree
     }
 
-    fn read_commit<R: Read>(mut reader: R) -> Commit {
-        unimplemented!()
+    fn read_commit<R: BufRead>(mut reader: R) -> Commit {
+        let mut buf = Vec::new();
+        reader.read_until(b' ', &mut buf);
+        let mut tree = Vec::new();
+        reader.read_until(b'\n', &mut tree);
+        tree.pop();
+        let tree = Oid::from_hex(&tree);
+        let mut parents = Vec::new();
+        loop {
+            buf.clear();
+            reader.read_until(b' ', &mut buf);
+            if &buf == b"author " {
+                break;
+            }
+            if &buf == b"parent " {
+                let mut parent = Vec::new();
+                reader.read_until(b'\n', &mut parent);
+                parent.pop();
+                parents.push(Oid::from_hex(&parent));
+            } else {
+                panic!("foo")
+            }
+        }
+        let author = Self::read_identity(&mut reader);
+        buf.clear();
+        reader.read_until(b' ', &mut buf);
+        let committer = Self::read_identity(&mut reader);
+        let mut message = Vec::new();
+        reader.read_to_end(&mut message);
+        Commit::new(tree, parents, author, committer, message)
+    }
+
+    fn read_identity<R: BufRead>(mut reader: R) -> Identity {
+        let mut name = Vec::new();
+        reader.read_until(b'<', &mut name);
+        name.pop();
+        name.pop();
+        let mut email = Vec::new();
+        reader.read_until(b' ', &mut email);
+        email.pop();
+        email.pop();
+        let mut datetime = Vec::new();
+        reader.read_until(b' ', &mut datetime);
+        datetime.pop();
+        let datetime_secs = std::str::from_utf8(&datetime)
+            .unwrap()
+            .parse::<i64>()
+            .unwrap();
+        let mut offset = Vec::new();
+        reader.read_until(b'\n', &mut offset);
+        offset.pop();
+        let offset_secs = std::str::from_utf8(&offset[1..])
+            .unwrap()
+            .parse::<i32>()
+            .unwrap();
+        let offset = if offset[0] == b'+' {
+            FixedOffset::east(offset_secs)
+        } else {
+            FixedOffset::west(offset_secs)
+        };
+        let datetime = offset.timestamp(datetime_secs, 0);
+        Identity::new(name, email, datetime)
     }
 }
 

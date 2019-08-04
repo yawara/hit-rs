@@ -1,4 +1,5 @@
 extern crate byteorder;
+extern crate chrono;
 extern crate flate2;
 extern crate hex;
 extern crate serde;

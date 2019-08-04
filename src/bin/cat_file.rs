@@ -26,7 +26,7 @@ fn main() {
     }
     match object.as_commit() {
         Some(commit) => {
-            println!("{:?}", commit);
+            print!("{}", commit);
             return;
         }
         None => (),
