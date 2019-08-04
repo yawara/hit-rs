@@ -19,7 +19,7 @@ fn main() {
     }
     match object.as_tree() {
         Some(tree) => {
-            println!("{:?}", tree);
+            print!("{}", tree);
             return;
         }
         None => (),

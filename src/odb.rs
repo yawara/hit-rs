@@ -110,6 +110,8 @@ impl StandardOdb {
                 break;
             }
             reader.read_until(0x00, &mut name);
+            mode.pop();
+            name.pop();
             let oid = Oid::from_reader(&mut reader).unwrap();
             let entry = TreeEntry::new(oid, Mode(mode));
             tree.append_entry(Name(name), entry);

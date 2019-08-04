@@ -1,13 +1,12 @@
 pub const GIT_OID_RAWSZ: usize = 20;
 
-use sha1::Sha1;
 use std::fmt;
 use std::io::BufRead;
 use std::ops::Deref;
 
 use crate::error::Result;
 
-#[derive(Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 pub struct Oid {
     id: [u8; GIT_OID_RAWSZ],
 }
@@ -38,7 +37,7 @@ impl Oid {
     }
 }
 
-impl fmt::Debug for Oid {
+impl fmt::Display for Oid {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.hex())
     }
