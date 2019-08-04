@@ -10,6 +10,8 @@ fn main() {
     let odb = StandardOdb::from_path(".git/objects");
     let oid = Oid::from_hex(&args[1]);
     let object = odb.get(&oid).unwrap();
-    let blob = object.into_blob().unwrap();
-    print!("{}", blob.as_str());
+    let tree = object.into_tree().unwrap();
+    println!("{:?}", tree);
+    // let blob = object.into_blob().unwrap();
+    // print!("{}", blob.as_str());
 }
