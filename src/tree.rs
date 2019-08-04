@@ -1,12 +1,12 @@
 use crate::oid::Oid;
-use std::collections::hash_map;
-use std::collections::HashMap;
+use std::collections::btree_map;
+use std::collections::BTreeMap;
 use std::fmt;
 
 #[derive(Debug)]
 pub struct Mode(pub Vec<u8>);
 
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Name(pub Vec<u8>);
 
 #[derive(Debug, Clone, Copy)]
@@ -23,7 +23,7 @@ pub struct TreeEntry {
 
 #[derive(Debug)]
 pub struct Tree {
-    entries: HashMap<Name, TreeEntry>,
+    entries: BTreeMap<Name, TreeEntry>,
 }
 
 impl TreeEntry {
@@ -43,7 +43,7 @@ impl TreeEntry {
 impl Tree {
     pub fn new() -> Self {
         Self {
-            entries: HashMap::new(),
+            entries: BTreeMap::new(),
         }
     }
 
@@ -54,7 +54,7 @@ impl Tree {
 
 impl<'a> IntoIterator for &'a Tree {
     type Item = (&'a Name, &'a TreeEntry);
-    type IntoIter = hash_map::Iter<'a, Name, TreeEntry>;
+    type IntoIter = btree_map::Iter<'a, Name, TreeEntry>;
     fn into_iter(self) -> Self::IntoIter {
         self.entries.iter()
     }
